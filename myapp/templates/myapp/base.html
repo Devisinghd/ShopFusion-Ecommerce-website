@@ -13,40 +13,79 @@
   <body>
     <div class="site-shell">
       <header class="site-header">
-        <div class="container nav-shell">
-          <a href="{% url 'index' %}" class="brand" aria-label="ShopFusion home">
-            <span class="brand-mark">S</span>
-            <span>ShopFusion</span>
-          </a>
+        <div class="container storefront-header">
+          <div class="storefront-main-row">
+            <a href="{% url 'index' %}" class="brand storefront-brand" aria-label="ShopFusion home">
+              <span class="brand-mark">S</span>
+              <span>ShopFusion</span>
+            </a>
 
-          <input type="checkbox" id="nav-toggle" class="nav-toggle" />
-          <label for="nav-toggle" class="nav-toggle-label" aria-label="Open menu">
-            <span></span>
-            <span></span>
-            <span></span>
-          </label>
+            <form class="store-search" action="{% url 'index' %}" method="get" role="search">
+              <span class="search-icon" aria-hidden="true"></span>
+              <input type="search" name="q" placeholder="Search watches, brands, or references" aria-label="Search watches, brands, or references">
+              <button type="submit" aria-label="Search">Search</button>
+            </form>
 
-          <nav class="main-nav" aria-label="Main navigation">
-            <a href="{% url 'index' %}">Home</a>
-            <a href="{% url 'seller-dashboard' %}">Seller</a>
-            <a href="{% url 'address_list' %}">Address book</a>
-            {% if user.is_authenticated %}
-              <a href="{% url 'order_view' %}">Order history</a>
-            {% endif %}
-          </nav>
+            <nav class="storefront-actions" aria-label="Account and shopping">
+              {% if user.is_authenticated %}
+              <details class="header-menu">
+                <summary class="header-menu-trigger">
+                  <span class="menu-trigger-label">{{ user.first_name|default:user.username }}</span>
+                  <span class="menu-chevron" aria-hidden="true">⌄</span>
+                </summary>
+                <div class="header-dropdown account-dropdown">
+                  <p class="dropdown-heading">Your account</p>
+                  <a href="{% url 'profile-view' user.pk %}">My profile</a>
+                  <a href="{% url 'order_view' %}">Orders</a>
+                  <a href="#" aria-label="Coupons (coming soon)">Coupons</a>
+                  <a href="#" aria-label="Rewards (coming soon)">Rewards</a>
+                  <a href="#" aria-label="Wallet (coming soon)">Wallet</a>
+                  <a href="{% url 'address_list' %}">Saved addresses</a>
+                  <a href="#" aria-label="Wishlist (coming soon)">Wishlist</a>
+                  <a href="#" aria-label="Gift cards (coming soon)">Gift cards</a>
+                  <a href="#" aria-label="Notifications (coming soon)">Notifications</a>
+                  <a class="dropdown-signout" href="{% url 'logout' %}">Sign out</a>
+                </div>
+              </details>
+              {% else %}
+              <a class="header-action-link" href="{% url 'login' %}">Sign in</a>
+              {% endif %}
 
-          <div class="nav-actions">
-            {% if user.is_authenticated %}
-              <a href="{% url 'profile-view' user.pk %}" class="nav-link">Account</a>
-              <a href="{% url 'logout' %}" class="nav-link">Sign out</a>
-            {% else %}
-              <a href="{% url 'login' %}" class="nav-link">Login</a>
-              <a href="{% url 'register' %}" class="nav-link">Register</a>
-            {% endif %}
+              <details class="header-menu">
+                <summary class="header-menu-trigger"><span>More</span><span class="menu-chevron" aria-hidden="true">⌄</span></summary>
+                <div class="header-dropdown more-dropdown">
+                  <p class="dropdown-heading">More from ShopFusion</p>
+                  <a href="{% url 'seller-dashboard' %}">Become a seller</a>
+                  <a href="#" aria-label="Watch servicing (coming soon)">Watch servicing</a>
+                  <a href="#" aria-label="Authenticity and warranty information (coming soon)">Authenticity &amp; warranty</a>
+                  <a href="#" aria-label="Notification settings (coming soon)">Notification settings</a>
+                  <a href="#" aria-label="Customer care (coming soon)">Customer care</a>
+                  <a href="#" aria-label="Advertise with us (coming soon)">Advertise with us</a>
+                </div>
+              </details>
 
-            <a href="{% url 'cart:cart-overview' %}" class="nav-cart" aria-label="Shopping cart">
-              <span class="cart-icon">🛒</span>
-              <span class="cart-badge">{% with qty_amount=cart|length %}{% if qty_amount > 0 %}{{ qty_amount }}{% else %}0{% endif %}{% endwith %}</span>
+              <a href="{% url 'cart:cart-overview' %}" class="header-cart">
+                <span class="header-cart-icon" aria-hidden="true"></span>
+                <span>Cart</span>
+                <span class="cart-badge">{% with qty_amount=cart|length %}{% if qty_amount > 0 %}{{ qty_amount }}{% else %}0{% endif %}{% endwith %}</span>
+              </a>
+            </nav>
+          </div>
+
+          <div class="storefront-sub-row">
+            <nav class="storefront-categories" aria-label="Watch and luxury collections">
+              <a href="{% url 'index' %}" class="category-link is-active">All watches</a>
+              <a href="#" aria-label="Automatic watches (coming soon)" class="category-link">Automatic</a>
+              <a href="#" aria-label="Dress watches (coming soon)" class="category-link">Dress watches</a>
+              <a href="#" aria-label="Chronograph watches (coming soon)" class="category-link">Chronographs</a>
+              <a href="#" aria-label="Dive and sport watches (coming soon)" class="category-link">Dive &amp; sport</a>
+              <a href="#" aria-label="Watch straps and accessories (coming soon)" class="category-link">Straps &amp; accessories</a>
+              <a href="#" aria-label="Luxury accessories (coming soon)" class="category-link">Luxury accessories</a>
+              <a href="#" aria-label="Collector's selection (coming soon)" class="category-link">Collector's selection</a>
+            </nav>
+            <a class="delivery-shortcut" href="{% if user.is_authenticated %}{% url 'address_list' %}{% else %}{% url 'login' %}{% endif %}">
+              <span class="delivery-indicator" aria-hidden="true"></span>
+              <span>Delivery settings</span>
             </a>
           </div>
         </div>
