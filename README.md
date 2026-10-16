@@ -130,6 +130,46 @@ After starting the server, visit:
 - ReDoc: `http://localhost:8000/api/redoc/`
 - OpenAPI schema: `http://localhost:8000/api/schema/`
 
+### React frontend
+
+The API is JSON-based and uses JWT bearer tokens. Obtain tokens with
+`POST /api/token/` using `username` and `password`, then send
+`Authorization: Bearer <access-token>` on authenticated requests. Refresh an
+expired access token with `POST /api/token/refresh/`.
+
+Available frontend flows:
+
+| Endpoint | Method | Authentication | Purpose |
+| --- | --- | --- | --- |
+| `/api/auth/register/` | POST | No | Create an account; sends an email code when verification is enabled |
+| `/api/auth/verify-email/` | POST | No | Verify an account using `email` and six-digit `code`; returns JWTs |
+| `/api/profile/` | GET, PATCH | Yes | Read or update the signed-in user's profile |
+| `/api/products/` | GET | No | Browse active products; supports `search`, `price__gte`, `price__lte`, `ordering`, `limit`, and `offset` |
+| `/api/products/` | POST | Yes | Create a product owned by the signed-in seller |
+| `/api/products/{id}/` | GET, PUT, PATCH, DELETE | Read public; write owner only | Read or manage a seller's product |
+| `/api/cart/quote/` | POST | No | Validate product IDs and quantities and return current prices and totals |
+| `/api/addresses/` | GET, POST | Yes | List or add the signed-in user's delivery addresses |
+| `/api/addresses/{id}/` | GET, PUT, PATCH, DELETE | Owner only | Manage one of the signed-in user's addresses |
+| `/api/checkout/` | POST | Yes | Create a pending order and reserve stock |
+| `/api/orders/` | GET | Yes | List only the signed-in user's orders |
+| `/api/orders/{id}/` | GET | Yes | Read one of the signed-in user's orders and its items |
+| `/api/orders/{id}/start-payment/` | POST | Yes | Start or resume Razorpay checkout |
+| `/api/orders/{id}/verify-payment/` | POST | Yes | Verify and capture Razorpay payment details |
+| `/api/orders/{id}/cancel/` | POST | Yes | Cancel an unpaid order and restore its reserved stock |
+
+Cart contents are sent by the frontend rather than stored in a Django browser
+session. Quote a cart with
+`{"items":[{"product_id":1,"quantity":2}]}`. To check out, send
+`{"address_id":1,"items":[{"product_id":1,"quantity":2}]}` to
+`/api/checkout/`. The server recalculates prices and checks stock; do not use
+client-submitted totals as authoritative.
+
+To use a separately hosted React app, set `CORS_ALLOWED_ORIGINS` to a
+comma-separated list of exact frontend origins, for example
+`https://shop.example.com,http://localhost:5173`. CORS is disabled for
+unlisted origins, and API authentication uses bearer tokens rather than
+cross-origin cookies.
+
 ## Deployment
 
 The local Docker Compose file is for development. It intentionally supports SQLite when `ALLOW_SQLITE=True`. For a live deployment:

@@ -33,7 +33,10 @@ class AddressSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Address
-        fields = '__all__'
+        fields = [
+            'id', 'user', 'full_name', 'phone', 'line1', 'line2',
+            'city', 'state', 'postal_code', 'country',
+        ]
         read_only_fields = ['user']
 
 
@@ -59,8 +62,12 @@ class OrderItemSerializer(serializers.ModelSerializer):
 class OrderSerializer(serializers.ModelSerializer):
     user = UserSerializer(read_only=True)
     items = OrderItemSerializer(many=True, read_only=True)
+    delivery_address = AddressSerializer(read_only=True)
 
     class Meta:
         model = Order
-        fields = ['id', 'user', 'total_amount', 'is_paid', 'status', 'created_at', 'items']
-        read_only_fields = ['id', 'user', 'total_amount', 'is_paid', 'status', 'created_at', 'items']
+        fields = [
+            'id', 'user', 'delivery_address', 'total_amount', 'is_paid',
+            'status', 'created_at', 'items',
+        ]
+        read_only_fields = fields

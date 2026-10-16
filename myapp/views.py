@@ -6,7 +6,7 @@ import logging
 from django.db.models import Q
 from django.shortcuts import get_object_or_404
 from .serializers import ProductSerializer, OrderSerializer, AddressSerializer, OrderItemSerializer
-from rest_framework import viewsets
+from rest_framework import permissions, viewsets
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from .permissions import IsOwnerOrReadOnly
 from django_filters.rest_framework import DjangoFilterBackend
@@ -39,8 +39,13 @@ class ProductViewSet(viewsets.ModelViewSet):
     authentication_classes = [JWTAuthentication]
     permission_classes = [IsOwnerOrReadOnly]
     filter_backends = [DjangoFilterBackend, OrderingFilter,SearchFilter]
-    #filterset_fields = ['name', 'price', 'description', 'seller__username']
-    #ordering_fields = ['name', 'price', 'description', 'seller__username']
+    filterset_fields = {
+        'price': ['exact', 'gte', 'lte'],
+        'stock': ['gte'],
+        'seller__username': ['exact'],
+    }
+    ordering_fields = ['name', 'price', 'stock', 'id']
+    ordering = ['id']
     search_fields = ['name', 'price', 'description', 'seller__username']
     throttle_classes = [AnonRateThrottle,UserRateThrottle]
 
@@ -48,8 +53,10 @@ class ProductViewSet(viewsets.ModelViewSet):
         queryset = Products.objects.all()
         user = self.request.user
         if user.is_authenticated:
-            return queryset.filter(Q(active=True) | Q(seller=user)).order_by('pk')
-        return queryset.filter(active=True).order_by('pk')
+            queryset = queryset.filter(Q(active=True) | Q(seller=user))
+        else:
+            queryset = queryset.filter(active=True)
+        return queryset.select_related('seller').order_by('pk')
 
     def perform_create(self, serializer):
         serializer.save(seller=self.request.user)
@@ -60,24 +67,27 @@ class ProductViewSet(viewsets.ModelViewSet):
 class OrderViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = OrderSerializer
     authentication_classes = [JWTAuthentication]
-    permission_classes = [IsOwnerOrReadOnly]
+    permission_classes = [permissions.IsAuthenticated]
     throttle_classes = [AnonRateThrottle, UserRateThrottle]
+
     def get_queryset(self):
         user = self.request.user
         if user and user.is_authenticated:
-            return Order.objects.filter(user=user)
+            return Order.objects.filter(user=user).select_related(
+                'user', 'delivery_address'
+            ).prefetch_related('items__product').order_by('-created_at')
         return Order.objects.none()
 
 class AddressViewSet(viewsets.ModelViewSet):
     serializer_class = AddressSerializer
     authentication_classes = [JWTAuthentication]
-    permission_classes = [IsOwnerOrReadOnly]
+    permission_classes = [permissions.IsAuthenticated]
     throttle_classes = [AnonRateThrottle, UserRateThrottle]
 
     def get_queryset(self):
         user = self.request.user
         if user and user.is_authenticated:
-            return Address.objects.filter(user=user)
+            return Address.objects.filter(user=user).order_by('-id')
         return Address.objects.none()
 
     def perform_create(self, serializer):
@@ -87,7 +97,7 @@ class AddressViewSet(viewsets.ModelViewSet):
 class OrderItemViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = OrderItemSerializer
     authentication_classes = [JWTAuthentication]
-    permission_classes = [IsOwnerOrReadOnly]
+    permission_classes = [permissions.IsAuthenticated]
     throttle_classes = [AnonRateThrottle, UserRateThrottle]
 
     def get_queryset(self):
