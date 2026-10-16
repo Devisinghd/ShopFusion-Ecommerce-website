@@ -1,6 +1,7 @@
 from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
 from django.contrib.auth.models import User
 from django import forms
+from .models import UserProfile
 
 class CreateUserForm(UserCreationForm):
     email = forms.EmailField(widget=forms.EmailInput(attrs={"placeholder":"example@gmail.com"}))
@@ -57,14 +58,73 @@ class EmailVerificationForm(forms.Form):
 class UserUpdateForm(forms.ModelForm):
     class Meta:
         model = User
-        fields = ['username']
+        fields = ['first_name', 'last_name', 'email']
         widgets = {
-            'username': forms.TextInput(attrs={"placeholder": "Enter Username"}),
+            'first_name': forms.TextInput(attrs={"autocomplete": "given-name"}),
+            'last_name': forms.TextInput(attrs={"autocomplete": "family-name"}),
+            'email': forms.EmailInput(attrs={"autocomplete": "email"}),
         }
 
     def __init__(self, *args, **kwargs):
         super(UserUpdateForm, self).__init__(*args, **kwargs)
+        self.fields['first_name'].label = 'First name'
+        self.fields['last_name'].label = 'Last name'
+        self.fields['email'].label = 'Email address'
         for field in self.fields.values():
-            field.widget.attrs.update({'class': 'w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50'})
+            field.widget.attrs.update({'class': 'profile-field-input'})
 
 
+class PersonalInformationForm(forms.ModelForm):
+    class Meta:
+        model = User
+        fields = ['first_name', 'last_name']
+        widgets = {
+            'first_name': forms.TextInput(attrs={"autocomplete": "given-name"}),
+            'last_name': forms.TextInput(attrs={"autocomplete": "family-name"}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['first_name'].label = 'First name'
+        self.fields['last_name'].label = 'Last name'
+        for field in self.fields.values():
+            field.widget.attrs.update({'class': 'profile-field-input'})
+
+
+class EmailAddressForm(forms.ModelForm):
+    class Meta:
+        model = User
+        fields = ['email']
+        widgets = {
+            'email': forms.EmailInput(attrs={"autocomplete": "email"}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['email'].label = 'Email address'
+        for field in self.fields.values():
+            field.widget.attrs.update({'class': 'profile-field-input'})
+
+
+class UserProfileForm(forms.ModelForm):
+    class Meta:
+        model = UserProfile
+        fields = ['phone_number', 'gender']
+        widgets = {
+            'phone_number': forms.TelInput(attrs={
+                'autocomplete': 'tel',
+                'placeholder': 'Add a phone number',
+            }),
+            'gender': forms.RadioSelect,
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['phone_number'].label = 'Mobile number'
+        self.fields['gender'].label = 'Your gender'
+        self.fields['gender'].choices = [
+            ('', 'Prefer not to say') if not value else (value, label)
+            for value, label in self.fields['gender'].choices
+        ]
+        for field in self.fields.values():
+            field.widget.attrs.update({'class': 'profile-field-input'})

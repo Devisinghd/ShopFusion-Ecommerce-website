@@ -44,7 +44,10 @@
                   <a href="#" aria-label="Wishlist (coming soon)">Wishlist</a>
                   <a href="#" aria-label="Gift cards (coming soon)">Gift cards</a>
                   <a href="#" aria-label="Notifications (coming soon)">Notifications</a>
-                  <a class="dropdown-signout" href="{% url 'logout' %}">Sign out</a>
+                  <form action="{% url 'logout' %}" method="post">
+                    {% csrf_token %}
+                    <button class="dropdown-signout" type="submit">Sign out</button>
+                  </form>
                 </div>
               </details>
               {% else %}

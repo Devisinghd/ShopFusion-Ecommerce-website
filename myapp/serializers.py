@@ -14,7 +14,8 @@ class ProductSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Products
-        fields = '__all__'
+        fields = ['id', 'name', 'price', 'description', 'image', 'slug', 'stock', 'active', 'seller']
+        read_only_fields = ['id', 'slug', 'seller']
 
     def validate_price(self, value):
         if value < 0:
@@ -41,12 +42,12 @@ class OrderItemSerializer(serializers.ModelSerializer):
     product_id = serializers.PrimaryKeyRelatedField(
         queryset=Products.objects.all(), source='product', write_only=True
     )
-    total_price = serializers.DecimalField(max_digits=12, decimal_places=2, read_only=True)
+    total_price = serializers.DecimalField(max_digits=22, decimal_places=2, read_only=True)
 
     class Meta:
         model = OrderItem
-        fields = ['id', 'order', 'product', 'product_id', 'quantity', 'total_price']
-        read_only_fields = ['id', 'product', 'total_price']
+        fields = ['id', 'order', 'product', 'product_id', 'quantity', 'unit_price', 'total_price']
+        read_only_fields = ['id', 'product', 'unit_price', 'total_price']
 
     def validate_order(self, value):
         request = self.context.get('request')
@@ -61,5 +62,5 @@ class OrderSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Order
-        fields = ['id', 'user', 'total_amount', 'is_paid', 'created_at', 'items']
-        read_only_fields = ['user', 'created_at', 'items']
+        fields = ['id', 'user', 'total_amount', 'is_paid', 'status', 'created_at', 'items']
+        read_only_fields = ['id', 'user', 'total_amount', 'is_paid', 'status', 'created_at', 'items']

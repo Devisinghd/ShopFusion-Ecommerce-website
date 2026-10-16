@@ -66,7 +66,7 @@ def cart_update(request):
         if product_quantity > product.stock:
             return JsonResponse({'error': 'Requested quantity exceeds available stock'}, status=400)
 
-        cart.update(product=product_id, product_qty=product_quantity)
+        cart.update(product=product, product_qty=product_quantity)
         cart_quantity = len(cart)
         cart_total = cart.get_total_price()
         return JsonResponse({'message': 'Cart updated', 'cart_quantity': cart_quantity, 'cart_total': str(cart_total)})

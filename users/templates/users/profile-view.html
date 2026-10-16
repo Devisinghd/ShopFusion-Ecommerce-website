@@ -1,62 +1,232 @@
 {% extends 'myapp/base.html' %}
-{% block title %}Profile overview · ShopFusion{% endblock %}
+{% block title %}My account · ShopFusion{% endblock %}
 {% block body %}
-<div class="page-shell">
-  <div class="panel" style="padding:24px; margin-bottom:20px;">
-    <div class="section-head">
+<div class="page-shell account-page">
+  <aside class="account-sidebar" aria-label="Account navigation">
+    <section class="panel account-identity">
+      <div class="account-avatar" aria-hidden="true">{{ user.first_name|default:user.username|first|upper }}</div>
       <div>
-        <p class="badge">Profile overview</p>
-        <h2>{{ user.get_full_name|default:user.username }}</h2>
-        <p>A polished snapshot of the account details, activity, and quick actions available to this user.</p>
+        <p class="account-greeting">Your ShopFusion account</p>
+        <h1>{{ user.get_full_name|default:user.username }}</h1>
       </div>
-      {% if request.user == user %}
-      <a href="{% url 'profile' %}" class="btn-primary">Edit profile</a>
+    </section>
+
+    <nav class="panel account-navigation">
+      <a class="account-nav-heading" href="{% url 'order_view' %}">
+        <span class="account-nav-mark" aria-hidden="true">01</span>
+        <span>My orders</span>
+        <span class="account-nav-arrow" aria-hidden="true">›</span>
+      </a>
+
+      <div class="account-nav-group">
+        <p class="account-nav-heading">
+          <span class="account-nav-mark" aria-hidden="true">02</span>
+          <span>Account settings</span>
+        </p>
+        <a href="{% url 'profile-view' user.pk %}" class="account-nav-link is-current" aria-current="page">Profile information</a>
+        <a href="{% url 'address_list' %}" class="account-nav-link">Manage addresses</a>
+        <a href="#" class="account-nav-link">PAN card information <span class="account-coming-soon">Coming later</span></a>
+      </div>
+
+      <div class="account-nav-group">
+        <p class="account-nav-heading">
+          <span class="account-nav-mark" aria-hidden="true">03</span>
+          <span>Payments</span>
+        </p>
+        <a href="#" class="account-nav-link">Gift cards</a>
+        <a href="#" class="account-nav-link">Saved payment methods</a>
+      </div>
+
+      <div class="account-nav-group">
+        <p class="account-nav-heading">
+          <span class="account-nav-mark" aria-hidden="true">04</span>
+          <span>My collection</span>
+        </p>
+        <a href="#" class="account-nav-link">Wishlist</a>
+        <a href="#" class="account-nav-link">Reviews &amp; ratings</a>
+        <a href="#" class="account-nav-link">Notifications</a>
+        <a href="#" class="account-nav-link">Coupons &amp; rewards</a>
+      </div>
+
+      <form class="account-logout" action="{% url 'logout' %}" method="post">
+        {% csrf_token %}
+        <button type="submit">Sign out</button>
+      </form>
+    </nav>
+
+    <section class="panel account-help">
+      <p class="account-help-title">Need a hand?</p>
+      <a href="#">Track an order</a>
+      <a href="#">Contact ShopFusion care</a>
+    </section>
+  </aside>
+
+  <main class="panel account-content">
+    <div class="account-content-header">
+      <div>
+        <p class="badge">Your details</p>
+        <h2>Profile information</h2>
+        <p>Keep your account details up to date for a smoother checkout.</p>
+      </div>
+      <span class="account-member-since">Member since {{ user.date_joined|date:"M Y" }}</span>
+    </div>
+
+    <section class="account-form-section account-edit-section" data-section="personal">
+      <div class="account-form-section-heading">
+        <div>
+          <div class="account-section-title-row">
+            <h3>Personal information</h3>
+            {% if editing_section == "personal" %}
+            <a href="{% url 'profile-view' user.pk %}" class="account-cancel-link">Cancel</a>
+            {% else %}
+            <a href="{% url 'profile-view' user.pk %}?edit=personal" class="account-edit-button">Edit</a>
+            {% endif %}
+          </div>
+          <p>Your name and optional profile preferences.</p>
+        </div>
+      </div>
+      {% if editing_section == "personal" %}
+      <form method="post" class="account-section-editor">
+        {% csrf_token %}
+        <input type="hidden" name="section" value="personal">
+        {{ personal_form.non_field_errors }}
+        {{ profile_form.non_field_errors }}
+        <div class="account-field-grid">
+          <div class="account-field">
+            <label for="{{ personal_form.first_name.id_for_label }}">{{ personal_form.first_name.label }}</label>
+            {{ personal_form.first_name }}
+            {% for error in personal_form.first_name.errors %}<p class="error-text">{{ error }}</p>{% endfor %}
+          </div>
+          <div class="account-field">
+            <label for="{{ personal_form.last_name.id_for_label }}">{{ personal_form.last_name.label }}</label>
+            {{ personal_form.last_name }}
+            {% for error in personal_form.last_name.errors %}<p class="error-text">{{ error }}</p>{% endfor %}
+          </div>
+        </div>
+        <fieldset class="account-gender-field">
+          <legend>{{ profile_form.gender.label }}</legend>
+          <div class="account-gender-options">
+            {% for radio in profile_form.gender %}
+            <label class="account-gender-option" for="{{ radio.id_for_label }}">
+              {{ radio.tag }}
+              <span>{{ radio.choice_label }}</span>
+            </label>
+            {% endfor %}
+          </div>
+          {% for error in profile_form.gender.errors %}<p class="error-text">{{ error }}</p>{% endfor %}
+        </fieldset>
+        <div class="account-section-actions">
+          <button type="submit" class="account-save-button">Save</button>
+        </div>
+      </form>
+      {% else %}
+      <div class="account-section-readonly">
+        <div class="account-value-grid">
+          <div class="account-value-box">{{ user.first_name|default:"First name not set" }}</div>
+          <div class="account-value-box">{{ user.last_name|default:"Last name not set" }}</div>
+        </div>
+        <div class="account-gender-readonly">
+          <p>Your gender</p>
+          {% if profile.gender %}
+            <span>{{ profile.get_gender_display }}</span>
+          {% else %}
+            <span>Not specified</span>
+          {% endif %}
+        </div>
+      </div>
       {% endif %}
-    </div>
-  </div>
+    </section>
 
-  <div class="detail-grid" style="grid-template-columns: 1.2fr 0.8fr; align-items:start;">
-    <div class="panel" style="padding:24px;">
-      <div style="display:flex; align-items:center; gap:16px;">
-        <div style="width:58px; height:58px; border-radius:18px; display:flex; align-items:center; justify-content:center; background:linear-gradient(135deg, var(--brand), var(--brand-2)); color:#fff; font-weight:800; font-size:1.2rem;">
-          {{ user.username|first|upper }}
-        </div>
+  <!-- this is the email editing section when the smtp added to this section
+   <section class="account-form-section account-edit-section" data-section="email">
+      <div class="account-form-section-heading">
         <div>
-          <h3 style="margin:0;">Account details</h3>
-          <p style="margin:4px 0 0; color:var(--muted);">Joined {{ user.date_joined|date:"M d, Y" }}</p>
+          <div class="account-section-title-row">
+            <h3>Email address</h3>
+            {% if editing_section == "email" %}
+            <a href="{% url 'profile-view' user.pk %}" class="account-cancel-link">Cancel</a>
+            {% else %}
+            <a href="{% url 'profile-view' user.pk %}?edit=email" class="account-edit-button">Edit</a>
+            {% endif %}
+          </div>
+          <p>For account and order updates.</p>
         </div>
       </div>
+      {% if editing_section == "email" %}
+      <form method="post" class="account-section-editor">
+        {% csrf_token %}
+        <input type="hidden" name="section" value="email">
+        {{ email_form.non_field_errors }}
+        <div class="account-field account-single-value">
+          <label for="{{ email_form.email.id_for_label }}">{{ email_form.email.label }}</label>
+          {{ email_form.email }}
+          {% for error in email_form.email.errors %}<p class="error-text">{{ error }}</p>{% endfor %}
+        </div>
+        <div class="account-section-actions">
+          <button type="submit" class="account-save-button">Save</button>
+        </div>
+      </form>
+      {% else %}
+      <div class="account-section-readonly">
+        <div class="account-value-box account-single-value">{{ user.email|default:"Email address not set" }}</div>
+      </div>
+      {% endif %}
+    </section>
+    -->
 
-      <div class="summary-card" style="margin-top:18px; display:grid; gap:12px; grid-template-columns:repeat(2, minmax(0, 1fr));">
+    <section class="account-form-section account-edit-section" data-section="phone">
+      <div class="account-form-section-heading">
         <div>
-          <p style="margin:0; color:var(--muted); font-size:0.9rem;">Username</p>
-          <p style="margin:6px 0 0; font-weight:700; color:var(--text);">{{ user.username }}</p>
-        </div>
-        <div>
-          <p style="margin:0; color:var(--muted); font-size:0.9rem;">Email</p>
-          <p style="margin:6px 0 0; font-weight:700; color:var(--text);">{{ user.email|default:"Not provided" }}</p>
-        </div>
-        <div>
-          <p style="margin:0; color:var(--muted); font-size:0.9rem;">Full name</p>
-          <p style="margin:6px 0 0; font-weight:700; color:var(--text);">{{ user.get_full_name|default:"Not set" }}</p>
-        </div>
-        <div>
-          <p style="margin:0; color:var(--muted); font-size:0.9rem;">Status</p>
-          <p style="margin:6px 0 0; font-weight:700; color:var(--success);">{% if user.is_active %}Active{% else %}Pending verification{% endif %}</p>
+          <div class="account-section-title-row">
+            <h3>Mobile number</h3>
+            {% if editing_section == "phone" %}
+            <a href="{% url 'profile-view' user.pk %}" class="account-cancel-link">Cancel</a>
+            {% else %}
+            <a href="{% url 'profile-view' user.pk %}?edit=phone" class="account-edit-button">Edit</a>
+            {% endif %}
+          </div>
+          <p>For delivery coordination when needed.</p>
         </div>
       </div>
-    </div>
-
-    <div class="panel" style="padding:24px;">
-      <h3 style="margin:0;">Quick links</h3>
-      <div style="display:grid; gap:10px; margin-top:16px;">
-        <a href="{% url 'order_view' %}" class="btn-outline" style="display:flex; justify-content:space-between;">View order history <span>→</span></a>
-        <a href="{% url 'index' %}" class="btn-outline" style="display:flex; justify-content:space-between;">Browse products <span>→</span></a>
-        {% if request.user == user %}
-        <a href="{% url 'logout' %}" class="btn-outline" style="display:flex; justify-content:space-between; border-color:#fecaca; color:#b91c1c;">Sign out <span>→</span></a>
-        {% endif %}
+      {% if editing_section == "phone" %}
+      <form method="post" class="account-section-editor">
+        {% csrf_token %}
+        <input type="hidden" name="section" value="phone">
+        {{ profile_form.non_field_errors }}
+        <div class="account-field account-single-value">
+          <label for="{{ profile_form.phone_number.id_for_label }}">{{ profile_form.phone_number.label }}</label>
+          {{ profile_form.phone_number }}
+          {% for error in profile_form.phone_number.errors %}<p class="error-text">{{ error }}</p>{% endfor %}
+        </div>
+        <div class="account-section-actions">
+          <button type="submit" class="account-save-button">Save</button>
+        </div>
+      </form>
+      {% else %}
+      <div class="account-section-readonly">
+        <div class="account-value-box account-single-value">{{ profile.phone_number|default:"Mobile number not set" }}</div>
       </div>
-    </div>
-  </div>
+      {% endif %}
+    </section>
+
+    <section class="account-faq">
+      <div class="account-form-section-heading">
+        <div>
+          <h3>Account questions</h3>
+          <p>Helpful notes about keeping your details current.</p>
+        </div>
+      </div>
+      <details class="account-faq-item">
+        <summary>What happens when I update my email or phone number?</summary>
+        <p>We’ll use your email for account and order updates, and your phone number for delivery coordination when needed.</p>
+      </details>
+      <details class="account-faq-item">
+        <summary>Can I change my delivery address here?</summary>
+        <p>Manage saved delivery locations from <a href="{% url 'address_list' %}">Manage addresses</a>. Choose an address during checkout for each order.</p>
+      </details>
+    </section>
+
+    <a href="#" class="account-deactivate">Deactivate account</a>
+  </main>
 </div>
 {% endblock %}

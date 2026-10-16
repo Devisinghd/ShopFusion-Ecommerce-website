@@ -1,0 +1,85 @@
+{% extends 'myapp/base.html' %}
+{% block title %}Payment · ShopFusion{% endblock %}
+{% block body %}
+<div class="page-shell">
+  <div class="panel" style="max-width:760px; margin:36px auto; padding:28px;">
+    <p class="badge">Secure checkout</p>
+    <h1>Complete your payment</h1>
+    <p>Order #{{ order.id }} · Total <strong>₹{{ order.total_amount|floatformat:2 }}</strong></p>
+
+    {% if order.is_paid %}
+      <div class="summary-card">
+        <h2>Payment confirmed</h2>
+        <p>Your order is paid and confirmed.</p>
+        <a class="btn-primary" href="{% url 'order-success' %}?order_id={{ order.id }}">View confirmation</a>
+      </div>
+    {% elif order.status == 'cancelled' %}
+      <div class="summary-card">
+        <h2>This order was cancelled</h2>
+        <p>It can no longer be paid.</p>
+      </div>
+    {% elif not razorpay_enabled %}
+      <div class="summary-card">
+        <h2>Online payment is unavailable</h2>
+        <p>Razorpay is not configured for this store yet. Your order is not confirmed and has not been charged.</p>
+        <a href="{% url 'order_view' %}">Return to order history</a>
+      </div>
+    {% else %}
+      <div class="summary-card">
+        <h2>Order summary</h2>
+        {% for item in order.items.all %}
+        <div class="stat-row">
+          <span>{{ item.product.name }} × {{ item.quantity }}</span>
+          <strong>₹{{ item.total_price|floatformat:2 }}</strong>
+        </div>
+        {% endfor %}
+        <div class="stat-row"><span>Total due</span><strong>₹{{ order.total_amount|floatformat:2 }}</strong></div>
+      </div>
+      <p id="payment-error" role="alert" aria-live="polite" style="color:#a33;"></p>
+      <button id="pay-now-button" type="button" class="btn-primary">Pay securely with Razorpay</button>
+      <form id="payment-csrf-form" hidden>{% csrf_token %}</form>
+      <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+      <script>
+        (function () {
+          const button = document.getElementById('pay-now-button');
+          const error = document.getElementById('payment-error');
+          const csrfToken = document.querySelector('#payment-csrf-form [name=csrfmiddlewaretoken]').value;
+
+          button.addEventListener('click', async function () {
+            button.disabled = true;
+            error.textContent = '';
+            try {
+              const response = await fetch('{% url "start-payment" order.id %}', {
+                method: 'POST',
+                credentials: 'same-origin',
+                headers: {
+                  'X-CSRFToken': csrfToken,
+                  'Accept': 'application/json'
+                }
+              });
+              const options = await response.json();
+              if (!response.ok) {
+                throw new Error(options.error || 'The payment could not be started.');
+              }
+              options.modal = {
+                ondismiss: function () {
+                  button.disabled = false;
+                }
+              };
+              const checkout = new Razorpay(options);
+              checkout.on('payment.failed', function () {
+                error.textContent = 'Payment did not complete. You can try again.';
+                button.disabled = false;
+              });
+              checkout.open();
+            } catch (paymentError) {
+              error.textContent = paymentError.message;
+              button.disabled = false;
+            }
+          });
+        })();
+      </script>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

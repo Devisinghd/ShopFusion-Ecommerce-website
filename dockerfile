@@ -27,7 +27,7 @@ COPY . /app/
 RUN mkdir -p /app/staticfiles /app/media
 
 # Collect static files for production
-RUN python manage.py collectstatic --noinput
+RUN DJANGO_SECRET_KEY=build-only-not-for-runtime ALLOW_SQLITE=True ALLOWED_HOSTS=localhost EMAIL_BACKEND=django.core.mail.backends.console.EmailBackend python manage.py collectstatic --noinput
 
 # Expose port
 EXPOSE 8000

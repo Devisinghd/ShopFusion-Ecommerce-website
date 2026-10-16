@@ -16,6 +16,12 @@ class Address(models.Model):
 
 
 class Order(models.Model):
+    class Status(models.TextChoices):
+        PENDING = 'pending', 'Pending'
+        PAID = 'paid', 'Paid'
+        CANCELLED = 'cancelled', 'Cancelled'
+        FULFILLED = 'fulfilled', 'Fulfilled'
+
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     delivery_address = models.ForeignKey(
         Address,
@@ -24,16 +30,21 @@ class Order(models.Model):
         blank=True,
         related_name='orders',
     )
-    total_amount = models.DecimalField( max_digits=10, decimal_places=2,default=0)
+    total_amount = models.DecimalField(max_digits=24, decimal_places=2, default=0)
     is_paid = models.BooleanField(default=False)
+    status = models.CharField(max_length=12, choices=Status.choices, default=Status.PENDING)
+    razorpay_order_id = models.CharField(max_length=64, blank=True, null=True, unique=True)
+    razorpay_payment_id = models.CharField(max_length=64, blank=True, null=True, unique=True)
+    paid_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
 class OrderItem(models.Model):
     order = models.ForeignKey(Order, on_delete=models.CASCADE,related_name="items")
-    product = models.ForeignKey(Products, on_delete=models.CASCADE)
+    product = models.ForeignKey(Products, on_delete=models.PROTECT)
     quantity = models.PositiveIntegerField(default=1)
+    unit_price = models.DecimalField(max_digits=12, decimal_places=2)
 
 
     @property
     def total_price(self):
-        return self.product.price * self.quantity
+        return self.unit_price * self.quantity

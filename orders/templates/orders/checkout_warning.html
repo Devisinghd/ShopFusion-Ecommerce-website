@@ -16,8 +16,16 @@
           </div>
         </div>
 
+        {% if messages %}
+        <div class="summary-card checkout-warning" role="alert">
+          {% for message in messages %}
+          <p class="checkout-muted">{{ message }}</p>
+          {% endfor %}
+        </div>
+        {% endif %}
+
         <p style="margin: 0 0 30px; color: var(--muted); font-size: 1rem; line-height: 1.85;">
-          It looks like your cart is empty, no items are selected for checkout, or a valid shipping address is missing. Complete the missing step below and continue with your purchase.
+          Review your cart, confirm the products and quantities are still available, and add a delivery address before trying again.
         </p>
 
         <div class="info-grid" style="grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin-bottom: 30px;">

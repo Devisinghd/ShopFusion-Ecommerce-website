@@ -12,6 +12,8 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 
 from pathlib import Path
 import os
+import sys
+from django.core.checks import Error, Tags, Warning, register
 
 try:
     from dotenv import load_dotenv
@@ -31,15 +33,29 @@ if not os.getenv('RENDER') and not os.getenv('DYNO') and not os.getenv('CI'):
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
-# SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.getenv('DJANGO_SECRET_KEY', os.getenv('SECRET_KEY', 'django-insecure-change-me'))
-
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv('DEBUG', 'False').lower() in ('true', '1', 'yes')
 
-default_hosts = ['localhost', '127.0.0.1', 'testserver', '.onrender.com']
-allowed_hosts_value = os.getenv('ALLOWED_HOSTS', ','.join(default_hosts))
-ALLOWED_HOSTS = [host.strip() for host in allowed_hosts_value.split(',') if host.strip()] or default_hosts
+# SECURITY WARNING: keep the secret key used in production secret!
+SECRET_KEY_CONFIGURED = bool(os.getenv('DJANGO_SECRET_KEY') or os.getenv('SECRET_KEY'))
+SECRET_KEY = os.getenv('DJANGO_SECRET_KEY') or os.getenv('SECRET_KEY')
+IS_MANAGEMENT_CHECK = any(
+    argument in {'check', 'collectstatic', 'makemigrations', 'test'}
+    for argument in sys.argv[1:]
+)
+RUNNING_TESTS = 'test' in sys.argv
+if not SECRET_KEY:
+    if DEBUG or IS_MANAGEMENT_CHECK:
+        SECRET_KEY = 'django-insecure-local-development-only'
+    else:
+        raise RuntimeError('Set DJANGO_SECRET_KEY in the deployment environment.')
+
+allowed_hosts_value = os.getenv('ALLOWED_HOSTS', '')
+ALLOWED_HOSTS_CONFIGURED = bool(allowed_hosts_value.strip())
+if allowed_hosts_value:
+    ALLOWED_HOSTS = [host.strip() for host in allowed_hosts_value.split(',') if host.strip()]
+else:
+    ALLOWED_HOSTS = ['localhost', '127.0.0.1', 'testserver'] if DEBUG or IS_MANAGEMENT_CHECK else []
 
 
 # Application definition
@@ -63,8 +79,6 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
-    'myapp.middleware.BlockIPMiddleware',
-    'myapp.middleware.TimerMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
@@ -99,25 +113,31 @@ WSGI_APPLICATION = 'mysite.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
-# Use the local SQLite file for development and Docker.
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
-    }
-}
+DATABASE_URL = os.getenv('DATABASE_URL', '').strip()
+ALLOW_SQLITE = os.getenv('ALLOW_SQLITE', 'False').lower() in ('true', '1', 'yes')
+if DATABASE_URL:
+    import dj_database_url
 
-# Local PostgreSQL development settings
-# DATABASES = {
-#     'default': {
-#         'ENGINE': 'django.db.backends.postgresql',
-#         'NAME': os.getenv('DB_NAME', 'postgres'),
-#         'USER': os.getenv('DB_USER', 'postgres'),
-#         'PASSWORD': os.getenv('DB_PASSWORD', 'postgres'),
-#         'HOST': os.getenv('DB_HOST', 'postgres'),
-#         'PORT': os.getenv('DB_PORT', '5432'),
-#     }
-# }
+    DATABASES = {
+        'default': dj_database_url.config(
+            default=DATABASE_URL,
+            conn_max_age=600,
+            conn_health_checks=True,
+            ssl_require=not DEBUG,
+        )
+    }
+elif ALLOW_SQLITE or DEBUG or RUNNING_TESTS or any(
+    argument in {'check', 'collectstatic', 'makemigrations'}
+    for argument in sys.argv[1:]
+):
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': os.getenv('SQLITE_PATH', str(BASE_DIR / 'db.sqlite3')),
+        }
+    }
+else:
+    raise RuntimeError('Set DATABASE_URL or explicitly enable ALLOW_SQLITE.')
 
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
@@ -156,15 +176,21 @@ USE_TZ = True
 STATIC_URL = '/static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
-# Enables compression and aggressive caching for fast loading speeds
-STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+STORAGES = {
+    'default': {
+        'BACKEND': 'django.core.files.storage.FileSystemStorage',
+    },
+    'staticfiles': {
+        'BACKEND': 'whitenoise.storage.CompressedManifestStaticFilesStorage',
+    },
+}
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-MEDIA_ROOT = BASE_DIR / 'media'
+MEDIA_ROOT = Path(os.getenv('MEDIA_ROOT', str(BASE_DIR / 'media')))
 MEDIA_URL = '/media/'
 
 # Email settings
@@ -177,17 +203,79 @@ EMAIL_PORT = int(os.getenv('EMAIL_PORT', '587'))
 EMAIL_USE_TLS = os.getenv('EMAIL_USE_TLS', 'True').lower() in ('true', '1', 'yes')
 EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER', '')
 EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD', '')
+DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', '').strip() or EMAIL_HOST_USER or 'webmaster@localhost'
 EMAIL_BACKEND = os.getenv('EMAIL_BACKEND', '')
 EMAIL_VERIFICATION = os.getenv('EMAIL_VERIFICATION', 'True').lower() in ('true', '1', 'yes')
 EMAIL_OTP_EXPIRY_MINUTES = int(os.getenv('EMAIL_OTP_EXPIRY_MINUTES', '10'))
 
+RAZORPAY_KEY_ID = os.getenv('RAZORPAY_KEY_ID', '').strip()
+RAZORPAY_KEY_SECRET = os.getenv('RAZORPAY_KEY_SECRET', '').strip()
+RAZORPAY_WEBHOOK_SECRET = os.getenv('RAZORPAY_WEBHOOK_SECRET', '').strip()
+
 if not EMAIL_BACKEND:
-    if DEBUG:
-        EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
-    elif EMAIL_HOST_USER and EMAIL_HOST_PASSWORD:
-        EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-    else:
-        EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+    EMAIL_BACKEND = (
+        'django.core.mail.backends.console.EmailBackend'
+        if DEBUG
+        else 'django.core.mail.backends.smtp.EmailBackend'
+    )
+
+
+@register(Tags.security, deploy=True)
+def deployment_configuration_check(app_configs, **kwargs):
+    if DEBUG or RUNNING_TESTS:
+        return []
+
+    issues = []
+    if not SECRET_KEY_CONFIGURED:
+        issues.append(Error(
+            'Set DJANGO_SECRET_KEY to a unique production secret.',
+            id='shopfusion.E001',
+        ))
+    elif len(SECRET_KEY) < 50 or SECRET_KEY.lower() in {'change-me', 'your-secret-key-here'}:
+        issues.append(Error(
+            'DJANGO_SECRET_KEY is too short or uses a known placeholder.',
+            id='shopfusion.E005',
+        ))
+    if not ALLOWED_HOSTS_CONFIGURED:
+        issues.append(Error(
+            'Set ALLOWED_HOSTS to the production hostnames.',
+            id='shopfusion.E002',
+        ))
+    if not DATABASE_URL:
+        issues.append(Error(
+            'Set DATABASE_URL to the managed production database; SQLite is not a production database.',
+            id='shopfusion.E003',
+        ))
+    if EMAIL_VERIFICATION and EMAIL_BACKEND == 'django.core.mail.backends.console.EmailBackend':
+        issues.append(Error(
+            'Email verification is enabled but the console email backend does not deliver messages.',
+            id='shopfusion.E004',
+        ))
+    if (
+        EMAIL_VERIFICATION
+        and EMAIL_BACKEND == 'django.core.mail.backends.smtp.EmailBackend'
+        and not (EMAIL_HOST_USER and EMAIL_HOST_PASSWORD)
+    ):
+        issues.append(Error(
+            'Email verification is enabled but SMTP credentials are missing.',
+            id='shopfusion.E006',
+        ))
+    if bool(RAZORPAY_KEY_ID) != bool(RAZORPAY_KEY_SECRET):
+        issues.append(Error(
+            'Set both RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET to enable Razorpay payments.',
+            id='shopfusion.E007',
+        ))
+    elif not RAZORPAY_KEY_ID:
+        issues.append(Warning(
+            'Razorpay credentials are not configured; customers cannot pay for orders.',
+            id='shopfusion.W001',
+        ))
+    if RAZORPAY_KEY_ID and not RAZORPAY_WEBHOOK_SECRET:
+        issues.append(Warning(
+            'RAZORPAY_WEBHOOK_SECRET is missing; payment-captured webhooks cannot be verified.',
+            id='shopfusion.W002',
+        ))
+    return issues
 
 CACHES = {
     'default': {
@@ -195,15 +283,35 @@ CACHES = {
         'LOCATION': BASE_DIR / "cache",
     }
 }
+LOGIN_THROTTLE_LIMIT = int(os.getenv('LOGIN_THROTTLE_LIMIT', '10'))
+LOGIN_THROTTLE_SECONDS = int(os.getenv('LOGIN_THROTTLE_SECONDS', '900'))
 
 LOG_LEVEL = "DEBUG" if DEBUG else "WARNING"
 
-SECURE_SSL_REDIRECT = os.getenv('SECURE_SSL_REDIRECT', 'False').lower() in ('true', '1', 'yes')
+SECURE_SSL_REDIRECT = os.getenv(
+    'SECURE_SSL_REDIRECT', 'False' if DEBUG or RUNNING_TESTS else 'True'
+).lower() in ('true', '1', 'yes')
+SECURE_HSTS_SECONDS = int(os.getenv(
+    'SECURE_HSTS_SECONDS',
+    '0' if DEBUG or RUNNING_TESTS else '31536000',
+))
+SECURE_HSTS_INCLUDE_SUBDOMAINS = os.getenv(
+    'SECURE_HSTS_INCLUDE_SUBDOMAINS', 'False'
+).lower() in ('true', '1', 'yes')
+CSRF_TRUSTED_ORIGINS = [
+    origin.strip()
+    for origin in os.getenv('CSRF_TRUSTED_ORIGINS', '').split(',')
+    if origin.strip()
+]
 
 if not DEBUG:
     SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
-    SESSION_COOKIE_SECURE = True
-    CSRF_COOKIE_SECURE = True
+SESSION_COOKIE_SECURE = os.getenv(
+    'SESSION_COOKIE_SECURE', 'False' if DEBUG else 'True'
+).lower() in ('true', '1', 'yes')
+CSRF_COOKIE_SECURE = os.getenv(
+    'CSRF_COOKIE_SECURE', 'False' if DEBUG else 'True'
+).lower() in ('true', '1', 'yes')
 
 LOGGING = {
     "version": 1,
@@ -212,14 +320,10 @@ LOGGING = {
         "console": {
             "class": "logging.StreamHandler",
         },
-        "file": {
-            "class": "logging.FileHandler",
-            "filename": BASE_DIR / "debug.log",
-        },
     },
     "root": {
-        "handlers": ["console", "file"],
-        "level": "DEBUG",
+        "handlers": ["console"],
+        "level": LOG_LEVEL,
     },
 }
 
@@ -241,10 +345,6 @@ REST_FRAMEWORK = {
         'rest_framework.throttling.AnonRateThrottle',
         'rest_framework.throttling.UserRateThrottle',
     ],
-    'DEFAULT_THROTTLE_RATES': {
-        'anon': '10/minute',
-        'user': '1000/day',
-    },
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.LimitOffsetPagination',
     'PAGE_SIZE': 20,
     'DEFAULT_FILTER_BACKENDS': [
@@ -256,4 +356,8 @@ REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.IsAuthenticatedOrReadOnly',
     ],
+    'DEFAULT_THROTTLE_RATES': {
+        'anon': os.getenv('API_ANON_THROTTLE_RATE', '10/minute'),
+        'user': os.getenv('API_USER_THROTTLE_RATE', '1000/day'),
+    },
 }

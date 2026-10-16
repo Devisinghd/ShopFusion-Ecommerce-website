@@ -5,4 +5,4 @@ class ProductsManager(models.Manager):
         return super().get_queryset().filter(is_deleted=False)
     
     def deleted(self):
-        return super().get_queryset().filter(is_deleted=False)
+        return super().get_queryset().filter(is_deleted=True)

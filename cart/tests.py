@@ -45,3 +45,19 @@ class CartEndpointTests(TestCase):
 		})
 
 		self.assertEqual(response.status_code, 400)
+
+	def test_cart_total_uses_current_product_price(self):
+		self.client.post(reverse('cart:cart_add'), {
+			'product_id': self.product.id,
+			'product_quantity': 1,
+		})
+		self.product.price = 155
+		self.product.save(update_fields=['price'])
+
+		response = self.client.post(reverse('cart:cart_update'), {
+			'product_id': self.product.id,
+			'product_quantity': 1,
+		})
+
+		self.assertEqual(response.status_code, 200)
+		self.assertEqual(response.json()['cart_total'], '155.00')

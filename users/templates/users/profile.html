@@ -8,7 +8,10 @@
         <h2>Manage your profile</h2>
         <p>Update your details and keep your ShopFusion account current and secure.</p>
       </div>
-      <a href="{% url 'logout' %}" class="btn-secondary">Sign out</a>
+      <form action="{% url 'logout' %}" method="post">
+        {% csrf_token %}
+        <button type="submit" class="btn-secondary">Sign out</button>
+      </form>
     </div>
 
     <div class="profile-grid">

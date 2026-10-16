@@ -2,102 +2,136 @@
 {% block title %}Checkout · ShopFusion{% endblock %}
 {% block body %}
 <div class="page-shell">
-  <div class="detail-grid" style="grid-template-columns: 1.2fr 0.8fr; align-items:start;">
-    <section class="panel" style="padding:24px;">
-      <div style="margin-bottom:16px;">
+  <div class="detail-grid checkout-grid" style="align-items:start;">
+    <section class="panel checkout-panel">
+      <div class="checkout-heading">
         <p class="badge">Checkout</p>
-        <h2 style="margin:10px 0 6px;">Complete your order</h2>
-        <p style="margin:0; color:var(--muted); line-height:1.7;">Choose a saved delivery address and place your order in a few taps.</p>
+        <h2>Complete your order</h2>
+        <p>Review your delivery details and place your order in a few taps.</p>
       </div>
+      {% if checkout_error %}
+      <div class="summary-card checkout-warning" role="alert">
+        <p class="checkout-section-title">Please review your order</p>
+        <p class="checkout-muted">{{ checkout_error }}</p>
+      </div>
+      {% endif %}
 
-      <div class="summary-card" style="margin-bottom:16px;">
-        <div class="section-head" style="margin-bottom:12px; align-items:center;">
+      <div class="summary-card checkout-address">
+        <div class="checkout-address-heading">
           <div>
-            <p style="font-weight:700; color:var(--text);">Delivery address</p>
-            <p style="margin:4px 0 0; color:var(--muted);">Pick one of your saved addresses or add a new one.</p>
+            <p class="checkout-section-title">Delivery address</p>
+            <p class="checkout-muted">Your order will be delivered to this address.</p>
           </div>
-          <a href="{% url 'add_address' %}" class="btn-outline">Add a new address</a>
+          {% if addresses %}
+          <button type="button" class="btn-outline" id="change-address-button" aria-haspopup="dialog" aria-controls="address-dialog">Change</button>
+          {% else %}
+          <a href="{% url 'add_address' %}?next={{ request.get_full_path|urlencode }}" class="btn-outline">Add address</a>
+          {% endif %}
         </div>
 
-        {% if addresses %}
-        <div style="display:grid; gap:12px;">
-          {% for saved_address in addresses %}
-          <label class="address-card" style="display:block; cursor:pointer; border:1px solid {% if selected_address_id|stringformat:'s' == saved_address.id|stringformat:'s' %}var(--brand){% else %}var(--border){% endif %}; border-radius:18px; padding:14px; background:{% if selected_address_id|stringformat:'s' == saved_address.id|stringformat:'s' %}#eff6ff{% else %}#fff{% endif %};">
-            <input type="radio" name="selected_address_id" value="{{ saved_address.id }}" style="position:absolute; opacity:0; pointer-events:none;" {% if selected_address_id|stringformat:'s' == saved_address.id|stringformat:'s' %}checked{% endif %}>
-            <div style="display:flex; justify-content:space-between; gap:12px; align-items:flex-start; flex-wrap:wrap;">
-              <div>
-                <p style="font-weight:700; color:var(--text);">{{ saved_address.full_name }}</p>
-                <p style="margin:4px 0 0; color:var(--muted);">{{ saved_address.phone }}</p>
-                <p style="margin:6px 0 0; color:var(--muted);">{{ saved_address.line1 }}{% if saved_address.line2 %}, {{ saved_address.line2 }}{% endif %}</p>
-                <p style="margin:2px 0 0; color:var(--muted);">{{ saved_address.city }}, {{ saved_address.state }} - {{ saved_address.postal_code }}</p>
-                <p style="margin:2px 0 0; color:var(--muted);">{{ saved_address.country }}</p>
-              </div>
-              <span class="btn-outline" style="display:inline-flex; align-items:center; justify-content:center;">Choose this address</span>
-            </div>
-          </label>
-          {% endfor %}
+        {% if address %}
+        <div class="selected-address" id="selected-address-summary">
+          <p class="selected-address-name" id="selected-address-name">{{ address.full_name }}</p>
+          <p class="selected-address-phone" id="selected-address-phone">{{ address.phone }}</p>
+          <p class="selected-address-lines">
+            <span id="selected-address-line1">{{ address.line1 }}</span><span id="selected-address-line2">{% if address.line2 %}, {{ address.line2 }}{% endif %}</span>
+          </p>
+          <p class="selected-address-lines"><span id="selected-address-city">{{ address.city }}</span>, <span id="selected-address-state">{{ address.state }}</span> <span id="selected-address-postal-code">{{ address.postal_code }}</span></p>
+          <p class="selected-address-lines" id="selected-address-country">{{ address.country }}</p>
         </div>
         {% else %}
-        <div class="panel" style="padding:18px; text-align:center;">
-          <p style="font-weight:700; color:var(--text);">No delivery address yet</p>
-          <p style="margin:6px 0 0; color:var(--muted);">Save a delivery location so checkout feels quick and easy.</p>
-          <a href="{% url 'add_address' %}" class="btn-primary" style="display:inline-flex; margin-top:12px;">Add a new address</a>
+        <div class="checkout-no-address">
+          <p class="checkout-section-title">No delivery address yet</p>
+          <p class="checkout-muted">Add an address to continue with your order.</p>
         </div>
         {% endif %}
       </div>
+
+      {% if addresses %}
+      <dialog class="address-dialog" id="address-dialog" aria-labelledby="address-dialog-title">
+        <div class="address-dialog-header">
+          <div>
+            <p class="badge">Your details</p>
+            <h2 id="address-dialog-title">Choose a delivery address</h2>
+          </div>
+          <button type="button" class="address-dialog-close" aria-label="Close address selector" data-close-address-dialog>&times;</button>
+        </div>
+        <div class="address-dialog-toolbar">
+          <p class="checkout-section-title">Saved addresses <span class="address-count">{{ addresses|length }}</span></p>
+          <a href="{% url 'add_address' %}?next={{ request.get_full_path|urlencode }}" class="text-link">+ Add new</a>
+        </div>
+        <div class="saved-address-list">
+          {% for saved_address in addresses %}
+          <label class="saved-address-option{% if selected_address_id|stringformat:'s' == saved_address.id|stringformat:'s' %} is-selected{% endif %}">
+            <input type="radio" name="address-choice" value="{{ saved_address.id }}"
+                   data-name="{{ saved_address.full_name }}"
+                   data-phone="{{ saved_address.phone }}"
+                   data-line1="{{ saved_address.line1 }}"
+                   data-line2="{{ saved_address.line2 }}"
+                   data-city="{{ saved_address.city }}"
+                   data-state="{{ saved_address.state }}"
+                   data-postal-code="{{ saved_address.postal_code }}"
+                   data-country="{{ saved_address.country }}"
+                   {% if selected_address_id|stringformat:'s' == saved_address.id|stringformat:'s' %}checked{% endif %}>
+            <span class="saved-address-copy">
+              <span class="saved-address-name">{{ saved_address.full_name }}</span>
+              <span class="saved-address-line">{{ saved_address.line1 }}{% if saved_address.line2 %}, {{ saved_address.line2 }}{% endif %}</span>
+              <span class="saved-address-line">{{ saved_address.city }}, {{ saved_address.state }} {{ saved_address.postal_code }}</span>
+              <span class="saved-address-line">{{ saved_address.phone }}</span>
+            </span>
+            {% if selected_address_id|stringformat:'s' == saved_address.id|stringformat:'s' %}
+            <span class="address-selected-label">Current</span>
+            {% endif %}
+          </label>
+          {% endfor %}
+        </div>
+      </dialog>
+      {% endif %}
 
       <form id="checkout-form" action="" method="post">
         {% csrf_token %}
         <input type="hidden" id="selected-address-id" name="selected_address_id" value="{{ address.id|default_if_none:'' }}" />
 
-        <div class="summary-card" style="border-color:#bbf7d0; background:#f0fdf4; color:#166534; margin-bottom:16px;">
-          <p style="font-weight:700;">Selected delivery address</p>
-          {% if address %}
-          <p style="margin:6px 0 0;">{{ address.full_name }} • {{ address.line1 }}{% if address.line2 %}, {{ address.line2 }}{% endif %}, {{ address.city }}</p>
-          {% else %}
-          <p style="margin:6px 0 0;">Choose or add an address before you continue.</p>
-          {% endif %}
-        </div>
         {% if checkout_items %}
           {% if address %}
-          <button type="submit" class="btn-primary" style="width:100%;justify-content:center;">Complete purchase</button>
+          <button type="submit" class="btn-primary checkout-submit">Complete purchase</button>
           {% else %}
-          <a href="{% url 'add_address' %}" class="btn-primary" style="width:100%;justify-content:center;">Add an address</a>
+          <a href="{% url 'add_address' %}?next={{ request.get_full_path|urlencode }}" class="btn-primary checkout-submit">Add an address</a>
           {% endif %}
         {% else %}
-          <div class="summary-card" style="border:1px solid #fbbf24; background:#fffbeb; color:#92400e; margin-bottom:16px; padding:16px;">
-            <p style="margin:0; font-weight:700;">Your cart is empty.</p>
-            <p style="margin:8px 0 0; color:var(--muted);">Add items to your cart before checking out.</p>
+          <div class="summary-card checkout-warning">
+            <p class="checkout-section-title">Your cart is empty.</p>
+            <p class="checkout-muted">Add items to your cart before checking out.</p>
           </div>
-          <a href="{% url 'cart:cart-overview' %}" class="btn-primary" style="width:100%;justify-content:center;">View Cart</a>
+          <a href="{% url 'cart:cart-overview' %}" class="btn-primary checkout-submit">View Cart</a>
         {% endif %}
       </form>
     </section>
 
-    <aside class="panel" style="padding:24px;">
+    <aside class="panel checkout-panel">
       <p class="badge">Order summary</p>
-      <h3 style="margin:10px 0 0; font-size:1.35rem;">Ready to checkout</h3>
+      <h3 class="checkout-summary-title">Ready to checkout</h3>
 
       {% if checkout_items %}
-      <div class="summary-card" style="margin-top:16px;">
+      <div class="summary-card checkout-products">
         {% for item in checkout_items %}
-        <div style="display:flex; justify-content:space-between; gap:10px; padding:10px 0; border-bottom:1px solid var(--border);">
+        <div class="checkout-product-row">
           <div>
-            <p style="font-weight:700; color:var(--text);">{{ item.product.name }}</p>
-            <p style="margin:4px 0 0; color:var(--muted); font-size:0.9rem;">Qty {{ item.qty }}</p>
+            <p class="checkout-product-name">{{ item.product.name }}</p>
+            <p class="checkout-muted">Qty {{ item.qty }}</p>
           </div>
-          <p style="font-weight:700; color:var(--text);">₹{{ item.total }}</p>
+          <p class="checkout-product-price">₹{{ item.total }}</p>
         </div>
         {% endfor %}
       </div>
-    {% else %}
-      <div class="summary-card" style="margin-top:16px; text-align:center; padding:24px; border:1px solid #fde68a; background:#fef3c7; color:#92400e;">
-        <p style="font-weight:700; margin-bottom:8px;">No products selected for checkout.</p>
-        <p style="margin:0; color:var(--muted);">Go back to the cart to add items before placing an order.</p>
+      {% else %}
+      <div class="summary-card checkout-empty-products">
+        <p class="checkout-section-title">No products selected for checkout.</p>
+        <p class="checkout-muted">Go back to the cart to add items before placing an order.</p>
       </div>
-    {% endif %}
+      {% endif %}
 
-      <div class="summary-card" style="margin-top:16px;">
+      <div class="summary-card checkout-totals">
         <div class="stat-row"><span>Subtotal</span><strong>₹{{ total_amount }}</strong></div>
         <div class="stat-row"><span>Shipping</span><strong>Free</strong></div>
         <div class="stat-row"><span>Total</span><strong>₹{{ total_amount }}</strong></div>
@@ -108,17 +142,58 @@
 {% endblock %}
 {% block scripts %}
 <script>
-  document.querySelectorAll('input[name="selected_address_id"]').forEach(function (radio) {
-    radio.addEventListener('change', function () {
-        document.getElementById('selected-address-id').value = this.value;
-    document.querySelectorAll('.address-card').forEach(function (card) {
-      card.style.borderColor = 'var(--line)';
-      card.style.background = 'rgba(255,255,255,.02)';
+  (function () {
+    const dialog = document.getElementById('address-dialog');
+    const changeButton = document.getElementById('change-address-button');
+    const selectedAddressId = document.getElementById('selected-address-id');
+    const summary = document.getElementById('selected-address-summary');
+
+    if (!dialog || !changeButton || !selectedAddressId || !summary) {
+      return;
+    }
+
+    changeButton.addEventListener('click', function () {
+      dialog.showModal();
     });
-    const selectedCard = this.closest('.address-card');
-    selectedCard.style.borderColor = 'var(--accent)';
-    selectedCard.style.background = 'rgba(215,176,111,.1)';
+
+    dialog.querySelectorAll('[data-close-address-dialog]').forEach(function (button) {
+      button.addEventListener('click', function () {
+        dialog.close();
+      });
     });
+
+    dialog.querySelectorAll('input[name="address-choice"]').forEach(function (radio) {
+      radio.addEventListener('change', function () {
+        if (!this.checked) {
+          return;
+        }
+
+        selectedAddressId.value = this.value;
+        document.getElementById('selected-address-name').textContent = this.dataset.name;
+        document.getElementById('selected-address-phone').textContent = this.dataset.phone;
+        document.getElementById('selected-address-line1').textContent = this.dataset.line1;
+        document.getElementById('selected-address-line2').textContent = this.dataset.line2 ? ', ' + this.dataset.line2 : '';
+        document.getElementById('selected-address-city').textContent = this.dataset.city;
+        document.getElementById('selected-address-state').textContent = this.dataset.state;
+        document.getElementById('selected-address-postal-code').textContent = this.dataset.postalCode;
+        document.getElementById('selected-address-country').textContent = this.dataset.country;
+
+        dialog.querySelectorAll('.saved-address-option').forEach(function (option) {
+          option.classList.toggle('is-selected', option.contains(radio));
+          const currentLabel = option.querySelector('.address-selected-label');
+          if (currentLabel) {
+            currentLabel.remove();
+          }
+        });
+        const selectedOption = this.closest('.saved-address-option');
+        const currentLabel = document.createElement('span');
+        currentLabel.className = 'address-selected-label';
+        currentLabel.textContent = 'Current';
+        selectedOption.appendChild(currentLabel);
+
+        dialog.close();
+      });
     });
+  }());
 </script>
 {% endblock %}

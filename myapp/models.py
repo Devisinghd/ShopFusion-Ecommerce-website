@@ -1,14 +1,20 @@
 from django.db import models
+from django.db.models import Q
 from django.utils.text import slugify
 from django.urls import reverse
 from .managers import ProductsManager
 from django.contrib.auth.models import User
 from django.utils import timezone
+from django.core.validators import MinValueValidator
+from decimal import Decimal
 # Create your models here
 class Products(models.Model):
     class Meta:
         indexes = [
             models.Index(fields=['name','price'])
+        ]
+        constraints = [
+            models.CheckConstraint(condition=Q(price__gt=0), name='products_price_positive'),
         ]
 
 
@@ -25,11 +31,16 @@ class Products(models.Model):
 
     seller = models.ForeignKey(User, on_delete=models.CASCADE,related_name='product')
     name = models.CharField(max_length=100,db_index=True)
-    price = models.FloatField(db_index=True)
+    price = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        db_index=True,
+        validators=[MinValueValidator(Decimal('0.01'))],
+    )
     description = models.TextField()
     image = models.ImageField(upload_to='images/')
     slug = models.SlugField(unique=True,blank=True)
-    stock = models.IntegerField()
+    stock = models.PositiveIntegerField()
     active = models.BooleanField(default=True)
 
     is_deleted = models.BooleanField(default=False)

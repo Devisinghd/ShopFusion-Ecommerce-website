@@ -20,6 +20,8 @@
       <div class="section-head" style="margin-bottom:0; align-items:center;">
         <div>
           <p style="margin:0; color:var(--muted);">Order #{{ item.order.id }}</p>
+          <p style="margin:6px 0 0; color:var(--muted);">Status: {{ item.order.get_status_display }}</p>
+          <p style="margin:6px 0 0; color:var(--muted);">Payment: {% if item.order.is_paid %}Paid{% else %}Not paid{% endif %}</p>
           <h3 style="margin:6px 0 0;">{{ item.product.name }}</h3>
           <p style="margin:6px 0 0; color:var(--muted);">Quantity: {{ item.quantity }}</p>
         </div>
@@ -27,10 +29,15 @@
           <p style="margin:0; color:var(--muted);">Amount</p>
           <p style="margin:6px 0 0; font-size:1.1rem; font-weight:700; color:var(--text);">₹{{ item.total_price|floatformat:2 }}</p>
         </div>
+        {% if item.order.status == 'pending' and not item.order.is_paid and not item.order.razorpay_order_id %}
         <form method="POST" action="{% url 'cancel_order' item.id %}" style="margin:0;">
           {% csrf_token %}
           <button type="submit" class="btn-secondary bg-danger" onclick="return confirm('Are you sure you want to cancel this order?');">Cancel</button>
         </form>
+        {% endif %}
+        {% if item.order.status == 'pending' and not item.order.is_paid %}
+        <a class="btn-secondary" href="{% url 'order-payment' item.order_id %}">Complete payment</a>
+        {% endif %}
       </div>
     </div>
     {% endfor %}

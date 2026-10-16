@@ -1,12 +1,19 @@
 {% extends 'myapp/base.html' %}
-{% block title %}Order Confirmed · ShopMate{% endblock %}
+{% block title %}Payment confirmed · ShopFusion{% endblock %}
 {% block body %}
 <div class="min-h-screen bg-slate-50 px-4 py-12">
   <div class="mx-auto max-w-3xl rounded-[32px] border border-slate-200 bg-white p-10 shadow-sm shadow-slate-200/50 text-center">
     <div class="inline-flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100 text-3xl text-emerald-700">✓</div>
-    <h1 class="mt-6 text-4xl font-semibold text-slate-900">Order placed successfully</h1>
-    <p class="mt-4 text-base leading-7 text-slate-600">Thank you for your purchase! We are preparing your order and will notify you when it is on the way.</p>
+    <h1 class="mt-6 text-4xl font-semibold text-slate-900">{% if order and order.is_paid %}Payment confirmed{% else %}Payment is being confirmed{% endif %}</h1>
+    <p class="mt-4 text-base leading-7 text-slate-600">
+      {% if order and order.is_paid %}
+        Thank you for your purchase. Order #{{ order.id }} is confirmed and we will notify you when it is on the way.
+      {% else %}
+        Your order will be confirmed as soon as the payment is verified. You can check its status in your order history.
+      {% endif %}
+    </p>
     <a href="{% url 'index' %}" class="mt-8 inline-flex rounded-full bg-blue-600 px-6 py-3 text-base font-semibold text-white shadow-lg shadow-blue-500/20 transition hover:bg-blue-700">Continue shopping</a>
+    <a href="{% url 'order_view' %}" class="mt-8 ml-3 inline-flex rounded-full border border-slate-300 px-6 py-3 text-base font-semibold text-slate-700 transition hover:bg-slate-50">View orders</a>
   </div>
 </div>
 {% endblock %}
