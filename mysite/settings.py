@@ -61,6 +61,7 @@ else:
 # Application definition
 
 INSTALLED_APPS = [
+    'anymail',
     'corsheaders',
     'drf_spectacular',
     'django_filters',
@@ -207,15 +208,19 @@ MEDIA_URL = '/media/'
 # to the terminal instead of being sent over the network. In production,
 # configure SMTP credentials and set DEBUG=False.
 
-EMAIL_HOST = os.getenv('EMAIL_HOST', 'smtp.gmail.com')
-EMAIL_PORT = int(os.getenv('EMAIL_PORT', '587'))
-EMAIL_USE_TLS = os.getenv('EMAIL_USE_TLS', 'True').lower() in ('true', '1', 'yes')
-EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER', '')
-EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD', '')
-DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', '').strip() or EMAIL_HOST_USER or 'webmaster@localhost'
+#EMAIL_HOST = os.getenv('EMAIL_HOST', 'smtp.gmail.com')
+#EMAIL_PORT = int(os.getenv('EMAIL_PORT', '587'))
+#EMAIL_USE_TLS = os.getenv('EMAIL_USE_TLS', 'True').lower() in ('true', '1', 'yes')
+#EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER', '')
+#EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD', '')
+DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', '')
 EMAIL_BACKEND = os.getenv('EMAIL_BACKEND', '')
 EMAIL_VERIFICATION = os.getenv('EMAIL_VERIFICATION', 'True').lower() in ('true', '1', 'yes')
 EMAIL_OTP_EXPIRY_MINUTES = int(os.getenv('EMAIL_OTP_EXPIRY_MINUTES', '10'))
+
+ANYMAIL = {
+    "BREVO_API_KEY": os.getenv("BREVO_API_KEY", ""),
+}
 
 RAZORPAY_KEY_ID = os.getenv('RAZORPAY_KEY_ID', '').strip()
 RAZORPAY_KEY_SECRET = os.getenv('RAZORPAY_KEY_SECRET', '').strip()

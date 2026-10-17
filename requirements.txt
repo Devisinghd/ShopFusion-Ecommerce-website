@@ -16,3 +16,4 @@ drf-spectacular==0.30.0
 gunicorn==22.0.0
 whitenoise==6.12.0
 razorpay==2.0.1
+django-anymail[brevo]==15.2
