@@ -51,11 +51,18 @@ if not SECRET_KEY:
         raise RuntimeError('Set DJANGO_SECRET_KEY in the deployment environment.')
 
 allowed_hosts_value = os.getenv('ALLOWED_HOSTS', '')
-ALLOWED_HOSTS_CONFIGURED = bool(allowed_hosts_value.strip())
 if allowed_hosts_value:
     ALLOWED_HOSTS = [host.strip() for host in allowed_hosts_value.split(',') if host.strip()]
 else:
-    ALLOWED_HOSTS = ['localhost', '127.0.0.1', 'testserver','ecommerce-website-coral-gamma.vercel.app','.vercel.app',] if DEBUG or IS_MANAGEMENT_CHECK else []
+    ALLOWED_HOSTS = [
+        'localhost',
+        '127.0.0.1',
+        'testserver',
+        'ecommerce-website-coral-gamma.vercel.app',
+        '.vercel.app',
+        '.onrender.com',
+    ]
+ALLOWED_HOSTS_CONFIGURED = bool(ALLOWED_HOSTS)
 
 
 # Application definition
@@ -312,11 +319,16 @@ SECURE_HSTS_SECONDS = int(os.getenv(
 SECURE_HSTS_INCLUDE_SUBDOMAINS = os.getenv(
     'SECURE_HSTS_INCLUDE_SUBDOMAINS', 'False'
 ).lower() in ('true', '1', 'yes')
-CSRF_TRUSTED_ORIGINS = [
-    origin.strip()
-    for origin in os.getenv('CSRF_TRUSTED_ORIGINS', '').split(',')
-    if origin.strip()
-]
+CSRF_TRUSTED_ORIGINS = list(dict.fromkeys([
+    *[
+        origin.strip()
+        for origin in os.getenv('CSRF_TRUSTED_ORIGINS', '').split(',')
+        if origin.strip()
+    ],
+    'https://ecommerce-website-coral-gamma.vercel.app',
+    'https://*.vercel.app',
+    'https://*.onrender.com',
+]))
 
 if not DEBUG:
     SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
@@ -375,8 +387,3 @@ REST_FRAMEWORK = {
         'user': os.getenv('API_USER_THROTTLE_RATE', '1000/day'),
     },
 }
-
-CSRF_TRUSTED_ORIGINS = [
-    'https://ecommerce-website-coral-gamma.vercel.app',
-    'https://*.vercel.app',  # This wildcard allows cross-site requests on previews
-]
