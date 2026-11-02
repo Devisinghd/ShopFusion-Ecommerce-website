@@ -260,9 +260,9 @@ def deployment_configuration_check(app_configs, **kwargs):
             'Set ALLOWED_HOSTS to the production hostnames.',
             id='shopfusion.E002',
         ))
-    if not DATABASE_URL:
+    if not DATABASE_URL and not ALLOW_SQLITE:
         issues.append(Error(
-            'Set DATABASE_URL to the managed production database; SQLite is not a production database.',
+            'Set DATABASE_URL or explicitly enable ALLOW_SQLITE.',
             id='shopfusion.E003',
         ))
     if EMAIL_VERIFICATION and EMAIL_BACKEND == 'django.core.mail.backends.console.EmailBackend':
