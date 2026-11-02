@@ -50,19 +50,17 @@ if not SECRET_KEY:
     else:
         raise RuntimeError('Set DJANGO_SECRET_KEY in the deployment environment.')
 
-allowed_hosts_value = os.getenv('ALLOWED_HOSTS', '')
-if allowed_hosts_value:
-    ALLOWED_HOSTS = [host.strip() for host in allowed_hosts_value.split(',') if host.strip()]
-else:
-    ALLOWED_HOSTS = [
-        'localhost',
-        '127.0.0.1',
-        'testserver',
-        'ecommerce-website-coral-gamma.vercel.app',
-        '.vercel.app',
-        '.onrender.com',
-    ]
-ALLOWED_HOSTS_CONFIGURED = bool(ALLOWED_HOSTS)
+# Force-configure production allowed domains explicitly. The Vercel
+# environment cannot override this list with a stale or empty value.
+ALLOWED_HOSTS = [
+    'localhost',
+    '127.0.0.1',
+    'testserver',
+    'ecommerce-website-coral-gamma.vercel.app',
+    '.vercel.app',
+    '.onrender.com',
+]
+ALLOWED_HOSTS_CONFIGURED = True
 
 
 # Application definition
@@ -319,16 +317,12 @@ SECURE_HSTS_SECONDS = int(os.getenv(
 SECURE_HSTS_INCLUDE_SUBDOMAINS = os.getenv(
     'SECURE_HSTS_INCLUDE_SUBDOMAINS', 'False'
 ).lower() in ('true', '1', 'yes')
-CSRF_TRUSTED_ORIGINS = list(dict.fromkeys([
-    *[
-        origin.strip()
-        for origin in os.getenv('CSRF_TRUSTED_ORIGINS', '').split(',')
-        if origin.strip()
-    ],
+# Django requires HTTPS origins here for cross-site form/CSRF validation.
+CSRF_TRUSTED_ORIGINS = [
     'https://ecommerce-website-coral-gamma.vercel.app',
     'https://*.vercel.app',
     'https://*.onrender.com',
-]))
+]
 
 if not DEBUG:
     SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
