@@ -55,7 +55,7 @@ ALLOWED_HOSTS_CONFIGURED = bool(allowed_hosts_value.strip())
 if allowed_hosts_value:
     ALLOWED_HOSTS = [host.strip() for host in allowed_hosts_value.split(',') if host.strip()]
 else:
-    ALLOWED_HOSTS = ['localhost', '127.0.0.1', 'testserver'] if DEBUG or IS_MANAGEMENT_CHECK else []
+    ALLOWED_HOSTS = ['localhost', '127.0.0.1', 'testserver','ecommerce-website-coral-gamma.vercel.app','.vercel.app',] if DEBUG or IS_MANAGEMENT_CHECK else []
 
 
 # Application definition
@@ -375,3 +375,8 @@ REST_FRAMEWORK = {
         'user': os.getenv('API_USER_THROTTLE_RATE', '1000/day'),
     },
 }
+
+CSRF_TRUSTED_ORIGINS = [
+    'https://ecommerce-website-coral-gamma.vercel.app',
+    'https://*.vercel.app',  # This wildcard allows cross-site requests on previews
+]
