@@ -1,15 +1,3 @@
 {
-  "buildCommand": "python manage.py migrate --noinput && python manage.py collectstatic --noinput",
-  "builds": [
-    {
-      "src": "mysite/wsgi.py",
-      "use": "@vercel/python",
-      "config": { "maxLambdaSize": "15mb" }
-    }
-  ],
-  "routes": [
-    { "src": "/static/(.*)", "dest": "staticfiles/$1" },
-    { "src": "/media/(.*)", "dest": "media/$1" },
-    { "src": "/(.*)", "dest": "mysite/wsgi.py" }
-  ]
+  "buildCommand": "bash build.sh"
 }
