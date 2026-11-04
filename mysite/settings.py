@@ -298,8 +298,8 @@ def deployment_configuration_check(app_configs, **kwargs):
 
 CACHES = {
     'default': {
-        'BACKEND': 'django.core.cache.backends.filebased.FileBasedCache',
-        'LOCATION': BASE_DIR / "cache",
+        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+        'LOCATION': 'shopfusion-login-throttle',
     }
 }
 LOGIN_THROTTLE_LIMIT = int(os.getenv('LOGIN_THROTTLE_LIMIT', '10'))
