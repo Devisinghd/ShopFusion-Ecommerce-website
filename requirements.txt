@@ -1,4 +1,4 @@
-﻿asgiref==3.11.1
+asgiref==3.11.1
 attrs==26.1.0
 certifi==2026.10.23
 charset-normalizer==3.5.2
