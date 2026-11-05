@@ -82,7 +82,9 @@ INSTALLED_APPS = [
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
+    'cloudinary_storage',
     'django.contrib.staticfiles',
+    'cloudinary',
 ]
 
 MIDDLEWARE = [
@@ -186,12 +188,24 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
 STORAGES = {
     'default': {
-        'BACKEND': 'django.core.files.storage.FileSystemStorage',
+        'BACKEND': 'cloudinary.storage.storage.MediaCloudinaryStorage',
     },
     'staticfiles': {
         'BACKEND': 'whitenoise.storage.CompressedManifestStaticFilesStorage',
     },
 }
+
+CLOUDINARY_STORAGE = {
+    'CLOUD_NAME': os.getenv('CLOUDINARY_CLOUD_NAME', ''),
+    'API_KEY': os.getenv('CLOUDINARY_API_KEY', ''),
+    'API_SECRET': os.getenv('CLOUDINARY_API_SECRET', ''),
+    'SECURE': True,
+}
+
+if DEBUG and RUNNING_TESTS:
+    STORAGES['default'] = {
+        'BACKEND': 'django.core.files.storage.FileSystemStorage',
+    }
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
@@ -211,13 +225,8 @@ MEDIA_URL = '/media/'
 # Email settings
 # In development (DEBUG=True) use the console backend so emails are printed
 # to the terminal instead of being sent over the network. In production,
-# configure SMTP credentials and set DEBUG=False.
+# configure SMTP anymail[brevo] credentials and set DEBUG=False.
 
-#EMAIL_HOST = os.getenv('EMAIL_HOST', 'smtp.gmail.com')
-#EMAIL_PORT = int(os.getenv('EMAIL_PORT', '587'))
-#EMAIL_USE_TLS = os.getenv('EMAIL_USE_TLS', 'True').lower() in ('true', '1', 'yes')
-#EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER', '')
-#EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD', '')
 DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', '')
 EMAIL_BACKEND = os.getenv('EMAIL_BACKEND', '')
 EMAIL_VERIFICATION = os.getenv('EMAIL_VERIFICATION', 'True').lower() in ('true', '1', 'yes')
