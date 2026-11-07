@@ -59,7 +59,7 @@ This project demonstrates a complete backend architecture for an online store, i
 
 ## Demo
 
-Visit the [live ShopFusion storefront](https://ecommerce-website-z90m.onrender.com/).
+Visit the [live ShopFusion storefront]([https://ecommerce-website-z90m.onrender.com/](https://ecommerce-website-coral-gamma.vercel.app/)).
 
 ### Storefront screenshot
 
