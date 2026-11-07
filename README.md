@@ -151,7 +151,7 @@ Product routes are available under `/api/products/`. Product and order permissio
 
 ## Deployment
 
-Set `DEBUG=False`, `DJANGO_SECRET_KEY`, `DATABASE_URL`, `ALLOWED_HOSTS`, and `CSRF_TRUSTED_ORIGINS` in production. Use managed PostgreSQL rather than SQLite for persistent data.
+Set `DEBUG=False`, `DJANGO_SECRET_KEY`, `DATABASE_URL`, `ALLOWED_HOSTS`, and `CSRF_TRUSTED_ORIGINS` in production. Use managed PostgreSQL rather than SQLite for persistent data. Currently i am using Neon PostgreSql database via DATABASE_URL on vercel.
 
 Configure Cloudinary with the environment variables listed above. Run migrations and collect static assets during deployment:
 
