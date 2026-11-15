@@ -126,11 +126,6 @@
           <span class="product-tag">Featured</span>
           <h3>{{ product.name }}</h3>
 
-          <div class="product-meta">
-            <span class="stars">★★★★★</span>
-            <span>4.9</span>
-          </div>
-
           <div class="product-footer">
             <span class="price">₹{{ product.price }}</span>
           </div>
@@ -156,10 +151,6 @@
         <div class="product-body">
           <span class="product-tag">Featured</span>
           <h3>{{ product.name }}</h3>
-          <div class="product-meta">
-            <span class="stars">★★★★★</span>
-            <span>4.9</span>
-          </div>
           <div class="product-footer">
             <span class="price">₹{{ product.price }}</span>
             <form class="add-to-cart-form" action="{% url 'cart:cart_add' %}" method="post">

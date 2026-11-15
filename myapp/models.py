@@ -23,11 +23,21 @@ class Products(models.Model):
 
     def get_absolute_url(self):
         return reverse('detail',args=[self.slug])
-    
+
+    def _generate_unique_slug(self, base_slug):
+        candidate = slugify(base_slug) or 'product'
+        slug = candidate
+        counter = 1
+        while Products.all_objects.filter(slug=slug).exclude(pk=self.pk).exists():
+            slug = f'{candidate}-{counter}'
+            counter += 1
+        return slug
+
     def delete(self,using=None,keep_parents=False):
+        self.active = False
         self.is_deleted = True
         self.deleted_at = timezone.now()
-        self.save(using=using, update_fields=['is_deleted', 'deleted_at'])
+        self.save(using=using, update_fields=['active', 'is_deleted', 'deleted_at'])
 
     seller = models.ForeignKey(User, on_delete=models.CASCADE,related_name='product')
     name = models.CharField(max_length=100,db_index=True)
@@ -50,13 +60,10 @@ class Products(models.Model):
     all_objects = models.Manager()
 
     def save(self,*args, **kwargs):
-        if not self.slug:
-            #self.slug = slugify(self.name)
-            base_slug = slugify(self.name)
-            slug = base_slug
-            counter = 1
-            while Products.objects.filter(slug=slug).exists():
-                slug = f"{base_slug}-{counter}"
-                counter+=1
-            self.slug = slug
+        slug_value = (self.slug or '').strip()
+        if slug_value:
+            if Products.all_objects.filter(slug=slug_value).exclude(pk=self.pk).exists():
+                self.slug = self._generate_unique_slug(slug_value)
+        else:
+            self.slug = self._generate_unique_slug(self.name)
         super().save(*args, **kwargs)

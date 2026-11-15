@@ -834,11 +834,6 @@ input {
   margin-bottom: 1rem;
 }
 
-.stars {
-  color: var(--accent-strong);
-  letter-spacing: 0.12em;
-}
-
 .product-footer {
   display: flex;
   align-items: center;
