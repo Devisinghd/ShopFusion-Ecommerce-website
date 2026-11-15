@@ -1,4 +1,4 @@
-﻿# ShopFusion
+# ShopFusion
 
 ShopFusion is a Django e-commerce application with a storefront, customer accounts, seller product management, cart and checkout flows, and REST API endpoints.
 
